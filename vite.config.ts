@@ -5,6 +5,7 @@ import path from 'path';
 
 export default defineConfig({
   base: '/',
+  publicDir: 'public',
   plugins: [
     react(),
     VitePWA({
