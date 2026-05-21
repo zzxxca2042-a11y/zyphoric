@@ -3,7 +3,7 @@ import { ArrowRight, Mail, MessageCircle, ShieldCheck } from 'lucide-react';
 import { SEO } from './SEO';
 import { site } from './toolsData';
 
-const supportEmail = 'support@devtools-hub-ai.netlify.app';
+const supportEmail = 'support@devtools-hubpro.netlify.app';
 const description =
   'Contact DevTools Hub AI for product support, privacy questions, bug reports, partnership requests, and general developer tool feedback.';
 

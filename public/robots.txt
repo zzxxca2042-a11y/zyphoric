@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://devtools-hub-ai.netlify.app/sitemap.xml
+Sitemap: https://devtools-hubpro.netlify.app/sitemap.xml

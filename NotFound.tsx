@@ -11,7 +11,7 @@ export const NotFound = () => {
         <SEO
         title="404 - Page Not Found"
         description="This page could not be found. Return to the hub or jump directly to popular developer tools."
-        canonical="https://devtools-hub-ai.netlify.app/404"
+        canonical="https://devtools-hubpro.netlify.app/404"
         robots="noindex, follow"
       />
       <div className="relative">

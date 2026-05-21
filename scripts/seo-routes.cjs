@@ -7,7 +7,7 @@ const data = JSON.parse(fs.readFileSync(toolsPath, 'utf8'));
 
 const site = data.site || {};
 const siteName = site.name || 'DevTools Hub AI';
-const baseUrl = (site.baseUrl || 'https://devtools-hub-ai.netlify.app').replace(/\/$/, '');
+const baseUrl = (site.baseUrl || 'https://devtools-hubpro.netlify.app').replace(/\/$/, '');
 const ogImage = `${baseUrl}/icon-512.png`;
 
 const withBrand = (title) => (title.includes(siteName) ? title : `${title} | ${siteName}`);

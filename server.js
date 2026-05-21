@@ -67,7 +67,7 @@ app.get('/sitemap.xml', (req, res) => {
     const toolsPath = path.resolve(process.cwd(), 'tools.json');
     const raw = fs.readFileSync(toolsPath, 'utf-8');
     const data = JSON.parse(raw);
-    const base = process.env.SITE_URL || data.site?.baseUrl || 'https://devtools-hub-ai.netlify.app';
+    const base = process.env.SITE_URL || data.site?.baseUrl || 'https://devtools-hubpro.netlify.app';
     const staticRoutes = ['/articles', '/about', '/contact', '/privacy', '/terms'];
     const urls = [base, ...(data.tools || []).map(t => `${base}${t.path}`), ...staticRoutes.map(route => `${base}${route}`)];
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
