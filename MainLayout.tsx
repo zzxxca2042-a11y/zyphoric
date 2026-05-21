@@ -33,8 +33,12 @@ export const MainLayout = () => {
   }, [location]);
 
   useEffect(() => {
-    const storedFavorites = localStorage.getItem('favorite_tools');
-    setFavoritePaths(storedFavorites ? JSON.parse(storedFavorites) : []);
+    try {
+      const storedFavorites = localStorage.getItem('favorite_tools');
+      setFavoritePaths(storedFavorites ? JSON.parse(storedFavorites) : []);
+    } catch (error) {
+      setFavoritePaths([]);
+    }
   }, []);
 
   useEffect(() => {
@@ -108,7 +112,7 @@ export const MainLayout = () => {
             <button onClick={() => setIsDark(!isDark)} aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition">
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            <a href="https://github.com" target="_blank" rel="noreferrer" aria-label="Open GitHub" className="text-slate-700 dark:text-slate-200 hover:text-black dark:hover:text-white"><Github size={20} /></a>
+            <a href="https://github.com/gvgvb/devtools-hub-ai" target="_blank" rel="noreferrer" aria-label="Open GitHub" className="text-slate-700 dark:text-slate-200 hover:text-black dark:hover:text-white"><Github size={20} /></a>
           </div>
 
           {/* Mobile Toggle */}

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM, { hydrateRoot, createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import { ErrorBoundary } from './ErrorBoundary';
 import './index.css';
 import { registerSW } from 'virtual:pwa-register';
 
@@ -44,17 +45,21 @@ if (rootEl.hasChildNodes()) {
   hydrateRoot(
     rootEl,
     <React.StrictMode>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <ErrorBoundary>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ErrorBoundary>
     </React.StrictMode>
   );
 } else {
   createRoot(rootEl).render(
     <React.StrictMode>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <ErrorBoundary>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ErrorBoundary>
     </React.StrictMode>
   );
 }

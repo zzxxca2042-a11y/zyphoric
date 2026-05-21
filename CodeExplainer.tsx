@@ -10,11 +10,14 @@ export const CodeExplainer = () => {
   const [code, setCode] = useState('');
   const [explanation, setExplanation] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const { showToast } = useToast();
 
   const handleExplain = async () => {
     if (!code) return;
     setLoading(true);
+    setError('');
+    setExplanation('');
     try {
       const result = await askAI(
         `Please explain this code snippet in detail, focusing on its logic and functionality:\n\n\`\`\`\n${code}\n\`\`\``,
@@ -22,7 +25,8 @@ export const CodeExplainer = () => {
       );
       setExplanation(result);
     } catch (err) {
-      showToast("AI response failed. Check your API key.", "error");
+      setError('Unable to explain the code right now. Please try again.');
+      showToast('AI response failed. Check your API key.', 'error');
     } finally {
       setLoading(false);
     }
@@ -93,7 +97,14 @@ export const CodeExplainer = () => {
         </button>
       </div>
 
-      {explanation && (
+      {error && (
+        <div className="bg-slate-900 border border-red-500/20 rounded-3xl p-6 text-red-200">
+          <h3 className="text-lg font-semibold text-red-300 mb-2">Error</h3>
+          <p>{error}</p>
+        </div>
+      )}
+
+      {explanation && !error && (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 relative group">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xl font-semibold text-emerald-400">Analysis</h3>

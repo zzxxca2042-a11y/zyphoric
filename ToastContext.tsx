@@ -3,7 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 type ToastTone = 'success' | 'error' | 'warning' | 'info';
 
 type Toast = {
-  id: number;
+  id: string;
   message: string;
   tone?: ToastTone;
 };
@@ -19,7 +19,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   const timeoutIds = useRef<number[]>([]);
 
   const showToast = useCallback((message: string, tone: ToastTone = 'info') => {
-    const id = Date.now();
+    const id = crypto.randomUUID();
     setToasts((current) => [...current, { id, message, tone }]);
     const timeoutId = window.setTimeout(() => {
       setToasts((current) => current.filter((toast) => toast.id !== id));
