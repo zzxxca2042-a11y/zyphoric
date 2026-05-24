@@ -29,3 +29,4 @@ scripts/generate-tool-pages.js
 
 # Google Indexing API Key
 google-key.json
+client_secret.json

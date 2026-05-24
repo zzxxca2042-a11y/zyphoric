@@ -1,49 +1,69 @@
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
+const http = require('http');
 const https = require('https');
+const url = require('url');
 
-// 1. Read Google Service Account Key
-const keyPath = path.join(__dirname, '..', 'google-key.json');
-if (!fs.existsSync(keyPath)) {
-  console.error('❌ Error: google-key.json not found in the project root directory.');
-  console.log('Please download your Service Account JSON key from Google Cloud Console, place it in the project root, and rename it to google-key.json.');
+// 1. Read Google OAuth Client Secrets
+const secretPath = path.join(__dirname, '..', 'client_secret.json');
+if (!fs.existsSync(secretPath)) {
+  console.error('❌ Error: client_secret.json not found in the project root directory.');
+  console.log('Please download your OAuth client JSON credentials from Google Cloud, place it in the project root, and rename it to client_secret.json.');
   process.exit(1);
 }
 
-const keyData = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
-const clientEmail = keyData.client_email;
-const privateKey = keyData.private_key;
+const secretData = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
+const webOrInstalled = secretData.installed || secretData.web;
 
-// Helper to sign JWT using Node.js built-in crypto
-function generateJWT() {
-  const header = JSON.stringify({ alg: 'RS256', typ: 'JWT' });
-  const iat = Math.floor(Date.now() / 1000);
-  const exp = iat + 3600; // 1 hour expiration
-  const payload = JSON.stringify({
-    iss: clientEmail,
-    scope: 'https://www.googleapis.com/auth/indexing',
-    aud: 'https://oauth2.googleapis.com/token',
-    exp: exp,
-    iat: iat
-  });
-
-  const base64UrlHeader = Buffer.from(header).toString('base64url');
-  const base64UrlPayload = Buffer.from(payload).toString('base64url');
-  const signatureInput = `${base64UrlHeader}.${base64UrlPayload}`;
-
-  const signer = crypto.createSign('RSA-SHA256');
-  signer.update(signatureInput);
-  const signature = signer.sign(privateKey, 'base64url');
-
-  return `${signatureInput}.${signature}`;
+if (!webOrInstalled) {
+  console.error('❌ Error: Invalid client_secret.json format.');
+  process.exit(1);
 }
 
-// Helper to request OAuth2 access token from Google
-function getAccessToken() {
+const clientId = webOrInstalled.client_id;
+const clientSecret = webOrInstalled.client_secret;
+const redirectUri = 'http://localhost:8080';
+
+// Helper to start local server and get OAuth code
+function getAuthCode() {
   return new Promise((resolve, reject) => {
-    const jwt = generateJWT();
-    const postData = `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`;
+    const server = http.createServer((req, res) => {
+      const parsedUrl = url.parse(req.url, true);
+      if (parsedUrl.pathname === '/') {
+        const code = parsedUrl.query.code;
+        if (code) {
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end('<h1>✅ Success!</h1><p>Authentication was successful. You can close this window now and return to your terminal.</p>');
+          res.connection.end();
+          server.close();
+          resolve(code);
+        } else {
+          res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('Authorization code not found.');
+          res.connection.end();
+          server.close();
+          reject(new Error('No code found in redirect.'));
+        }
+      } else {
+        res.writeHead(404);
+        res.end();
+      }
+    });
+
+    server.listen(8080, '127.0.0.1', () => {
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=https://www.googleapis.com/auth/indexing`;
+      console.log('\n🔑 Authentication Required!');
+      console.log('Please open the following link in your browser to authorize your account:');
+      console.log(`\n\x1b[36m${authUrl}\x1b[0m\n`);
+      console.log('Waiting for you to log in in the browser...');
+    });
+  });
+}
+
+// Helper to exchange authorization code for access token
+function exchangeCodeForToken(code) {
+  return new Promise((resolve, reject) => {
+    const postData = `code=${encodeURIComponent(code)}&client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&grant_type=authorization_code`;
 
     const req = https.request({
       hostname: 'oauth2.googleapis.com',
@@ -62,7 +82,7 @@ function getAccessToken() {
           if (response.access_token) {
             resolve(response.access_token);
           } else {
-            reject(new Error(`Failed to get access token: ${data}`));
+            reject(new Error(`Failed to exchange code: ${data}`));
           }
         } catch (e) {
           reject(new Error(`Response parsing failed: ${data}`));
@@ -114,8 +134,9 @@ function notifyIndexing(accessToken, url, type = 'URL_UPDATED') {
 // Main execution
 async function main() {
   try {
-    console.log('🔑 Authenticating with Google Indexing API...');
-    const token = await getAccessToken();
+    const code = await getAuthCode();
+    console.log('🔑 Authenticating and fetching access token...');
+    const token = await exchangeCodeForToken(code);
     console.log('✅ Authentication successful!');
 
     // Read URLs from sitemap.xml
