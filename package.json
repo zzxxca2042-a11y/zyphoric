@@ -8,6 +8,7 @@
     "serve": "node server.js",
     "dev": "concurrently \"npm run serve\" \"vite --host 0.0.0.0\"",
     "netlify": "netlify dev",
+    "index-site": "node ./scripts/instant-index.cjs",
     "prebuild": "node ./scripts/generate-pwa-assets.cjs && node ./scripts/generate-seo-files.cjs",
     "build": "vite build",
     "postbuild": "node ./scripts/generate-static-pages.cjs",

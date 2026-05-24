@@ -26,3 +26,6 @@ scripts/generate-tool-pages.js
 
 # Local Netlify folder
 .netlify
+
+# Google Indexing API Key
+google-key.json
