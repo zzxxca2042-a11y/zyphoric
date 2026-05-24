@@ -3,8 +3,6 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
-import fs from 'fs';
-import path from 'path';
 import * as Sentry from '@sentry/node';
 
 dotenv.config();
@@ -24,8 +22,7 @@ if (SENTRY_DSN) {
 }
 
 if (!apiKey) {
-  console.error('Missing GROQ_API_KEY in environment. Please set it in your .env file.');
-  process.exit(1);
+  console.warn('⚠️ Warning: Missing GROQ_API_KEY in environment. Local Express AI proxy will not work.');
 }
 
 app.use(helmet());
@@ -60,26 +57,6 @@ function checkAndConsumeQuota(key) {
   quotaMap.set(key, entry);
   return true;
 }
-
-// Sitemap endpoint (dynamic based on tools.json)
-app.get('/sitemap.xml', (req, res) => {
-  try {
-    const toolsPath = path.resolve(process.cwd(), 'tools.json');
-    const raw = fs.readFileSync(toolsPath, 'utf-8');
-    const data = JSON.parse(raw);
-    const base = process.env.SITE_URL || data.site?.baseUrl || 'https://devtools-hubpro.netlify.app';
-    const staticRoutes = ['/articles', '/about', '/contact', '/privacy', '/terms'];
-    const urls = [base, ...(data.tools || []).map(t => `${base}${t.path}`), ...staticRoutes.map(route => `${base}${route}`)];
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
-      .map(u => `  <url><loc>${u}</loc><priority>0.8</priority></url>`)
-      .join('\n')}\n</urlset>`;
-    res.header('Content-Type', 'application/xml');
-    return res.send(xml);
-  } catch (e) {
-    console.error('Sitemap generation failed', e);
-    return res.status(500).send('Sitemap generation failed');
-  }
-});
 
 app.post('/api/ai', async (req, res) => {
   const { prompt, systemPrompt } = req.body;

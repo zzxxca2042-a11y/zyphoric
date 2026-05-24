@@ -23,3 +23,6 @@ coverage/
 # Ignore legacy/temporary build artifacts and scaffolds
 scripts/generate-tool-pages.cjs
 scripts/generate-tool-pages.js
+
+# Local Netlify folder
+.netlify

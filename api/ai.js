@@ -29,31 +29,24 @@ const getClientKey = (event) =>
   (event.headers && (event.headers['x-nf-client-connection-ip'] || event.headers['client-ip'])) ||
   'anonymous';
 
-export async function handler(event, context) {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: { Allow: 'POST' }, body: JSON.stringify({ error: 'Method not allowed.' }) };
+async function runAiEndpoint({ method, body, clientIp }) {
+  if (method !== 'POST') {
+    return { statusCode: 405, headers: { Allow: 'POST' }, body: { error: 'Method not allowed.' } };
   }
 
-  let body = {};
-  try {
-    body = event.body ? JSON.parse(event.body) : {};
-  } catch (e) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON body.' }) };
-  }
-
-  const prompt = body.prompt;
-  const systemPrompt = body.systemPrompt;
+  const prompt = body?.prompt;
+  const systemPrompt = body?.systemPrompt;
   if (!prompt || typeof prompt !== 'string') {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid request body. `prompt` is required.' }) };
+    return { statusCode: 400, body: { error: 'Invalid request body. `prompt` is required.' } };
   }
 
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    return { statusCode: 503, body: JSON.stringify({ error: 'AI service is not configured.' }) };
+    return { statusCode: 503, body: { error: 'AI service is not configured.' } };
   }
 
-  if (!consumeQuota(getClientKey(event))) {
-    return { statusCode: 429, body: JSON.stringify({ error: 'Quota exceeded. Try again later.' }) };
+  if (!consumeQuota(clientIp)) {
+    return { statusCode: 429, body: { error: 'Quota exceeded. Try again later.' } };
   }
 
   const model = ALLOWED_MODELS.has(body?.model) ? body.model : DEFAULT_MODEL;
@@ -84,27 +77,50 @@ export async function handler(event, context) {
       data = await response.json();
     } catch (err) {
       clearTimeout(timeout);
-      return { statusCode: 502, body: JSON.stringify({ error: 'Invalid response from AI provider.' }) };
+      return { statusCode: 502, body: { error: 'Invalid response from AI provider.' } };
     }
 
     if (!response.ok) {
       clearTimeout(timeout);
-      return { statusCode: 502, body: JSON.stringify({ error: data?.error?.message || 'AI provider returned an error.' }) };
+      return { statusCode: 502, body: { error: data?.error?.message || 'AI provider returned an error.' } };
     }
 
     const text = data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text || data?.output?.text;
     if (!text) {
       clearTimeout(timeout);
-      return { statusCode: 502, body: JSON.stringify({ error: 'AI provider returned an unexpected response.' }) };
+      return { statusCode: 502, body: { error: 'AI provider returned an unexpected response.' } };
     }
 
     clearTimeout(timeout);
-    return { statusCode: 200, body: JSON.stringify({ success: true, text }) };
+    return { statusCode: 200, body: { success: true, text } };
   } catch (error) {
     clearTimeout(timeout);
     if (error?.name === 'AbortError') {
-      return { statusCode: 504, body: JSON.stringify({ error: 'AI request timed out.' }) };
+      return { statusCode: 504, body: { error: 'AI request timed out.' } };
     }
-    return { statusCode: 500, body: JSON.stringify({ error: 'AI service proxy failed.' }) };
+    return { statusCode: 500, body: { error: 'AI service proxy failed.' } };
   }
-};
+}
+
+// Netlify Function Handler
+export async function handler(event, context) {
+  let body = {};
+  try {
+    body = event.body ? JSON.parse(event.body) : {};
+  } catch (e) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON body.' }) };
+  }
+
+  const clientIp = getClientKey(event);
+  const result = await runAiEndpoint({
+    method: event.httpMethod,
+    body,
+    clientIp,
+  });
+
+  return {
+    statusCode: result.statusCode,
+    headers: result.headers,
+    body: JSON.stringify(result.body),
+  };
+}
