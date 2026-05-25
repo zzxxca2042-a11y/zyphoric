@@ -1,27 +1,34 @@
 import { useEffect } from 'react';
 import { site } from './toolsData';
 
+type JsonLdSchema = object | object[];
+
 interface SEOProps {
   title: string;
   description: string;
   canonical?: string;
-  schema?: object | object[];
+  schema?: JsonLdSchema;
   image?: string;
   keywords?: string;
   robots?: string;
 }
 
 const setMetaTag = (attr: 'name' | 'property', key: string, content: string) => {
-  const elements = Array.from(document.head.querySelectorAll(`meta[${attr}="${key}"]`)) as HTMLMetaElement[];
+  const head = document.head;
+  const selector = `meta[${attr}="${key}"]`;
+  const elements = Array.from(head.querySelectorAll(selector)) as HTMLMetaElement[];
+
   let element = elements[0] ?? null;
   elements.slice(1).forEach((duplicate) => duplicate.remove());
 
   if (!element) {
     element = document.createElement('meta');
     element.setAttribute(attr, key);
-    document.head.appendChild(element);
+    head.appendChild(element);
   }
+
   element.setAttribute('content', content);
+  element.setAttribute('data-seo-managed', 'true');
 };
 
 const removeMetaTag = (attr: 'name' | 'property', key: string) => {
@@ -31,22 +38,43 @@ const removeMetaTag = (attr: 'name' | 'property', key: string) => {
 };
 
 const setLinkTag = (rel: string, href: string) => {
-  const elements = Array.from(document.head.querySelectorAll(`link[rel="${rel}"]`)) as HTMLLinkElement[];
+  const head = document.head;
+  const selector = `link[rel="${rel}"]`;
+  const elements = Array.from(head.querySelectorAll(selector)) as HTMLLinkElement[];
+
   let element = elements[0] ?? null;
   elements.slice(1).forEach((duplicate) => duplicate.remove());
 
   if (!element) {
     element = document.createElement('link');
     element.setAttribute('rel', rel);
-    document.head.appendChild(element);
+    head.appendChild(element);
   }
+
   element.setAttribute('href', href);
+  element.setAttribute('data-seo-managed', 'true');
 };
 
 const removeManagedSchemaScripts = () => {
   document.head
     .querySelectorAll('script[data-seo-schema]')
     .forEach((element) => element.remove());
+};
+
+const setSchemaScript = (schema: JsonLdSchema) => {
+  const head = document.head;
+  const existing = head.querySelector('script[data-seo-schema]') as HTMLScriptElement | null;
+
+  if (existing) {
+    existing.textContent = JSON.stringify(schema);
+    return;
+  }
+
+  const script = document.createElement('script');
+  script.setAttribute('type', 'application/ld+json');
+  script.setAttribute('data-seo-schema', 'true');
+  script.textContent = JSON.stringify(schema);
+  head.appendChild(script);
 };
 
 export const SEO = ({ title, description, canonical, schema, image, keywords, robots }: SEOProps) => {
@@ -62,15 +90,22 @@ export const SEO = ({ title, description, canonical, schema, image, keywords, ro
     const resolvedSocialImage = image
       ? resolvedImage
       : new URL('/zyphoric-social-preview.png', site.baseUrl).toString();
+
     document.title = pageTitle;
+
     setMetaTag('name', 'application-name', siteName);
     setMetaTag('name', 'apple-mobile-web-app-title', siteName);
     setMetaTag('name', 'description', description);
     setMetaTag('name', 'theme-color', '#0f2549');
     setMetaTag('name', 'color-scheme', 'dark light');
     setMetaTag('name', 'robots', robots ?? 'index, follow, max-image-preview:large');
-    if (keywords) setMetaTag('name', 'keywords', keywords);
-    else removeMetaTag('name', 'keywords');
+
+    if (keywords) {
+      setMetaTag('name', 'keywords', keywords);
+    } else {
+      removeMetaTag('name', 'keywords');
+    }
+
     setLinkTag('canonical', pageUrl);
 
     setMetaTag('property', 'og:title', pageTitle);
@@ -95,14 +130,15 @@ export const SEO = ({ title, description, canonical, schema, image, keywords, ro
     setMetaTag('name', 'twitter:image', resolvedSocialImage);
     setMetaTag('name', 'twitter:image:alt', `${siteName} preview image`);
 
-    removeManagedSchemaScripts();
     if (schema) {
-      const script = document.createElement('script');
-      script.setAttribute('type', 'application/ld+json');
-      script.setAttribute('data-seo-schema', 'true');
-      script.textContent = JSON.stringify(schema);
-      document.head.appendChild(script);
+      setSchemaScript(schema);
+    } else {
+      removeManagedSchemaScripts();
     }
+
+    return () => {
+      removeManagedSchemaScripts();
+    };
   }, [title, description, canonical, schema, image, keywords, robots]);
 
   return null;
