@@ -3,7 +3,7 @@ import { ArrowRight, Mail, MessageCircle, ShieldCheck } from 'lucide-react';
 import { SEO } from './SEO';
 import { site } from './toolsData';
 
-const supportEmail = 'support@zyphoric.netlify.app';
+const supportEmail = 'zzxxca2042@gmail.com';
 const description =
   'Contact Zyphoric for product support, privacy questions, bug reports, partnership requests, and general developer tool feedback.';
 
